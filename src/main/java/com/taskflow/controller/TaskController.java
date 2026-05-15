@@ -3,6 +3,7 @@ package com.taskflow.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,8 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.taskflow.dto.ApiResponse;
+import com.taskflow.exception.TaskNotFoundException;
 import com.taskflow.model.Task;
 import com.taskflow.service.TaskService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/tasks")
@@ -25,47 +30,61 @@ public class TaskController {
 	private List<Task> tasks=new ArrayList<>(List.of(new Task(1L,"Build HelloController","DONE","HIGH"),new Task(2L,"Connect MySQL","TODO","HIGH"),
 			new Task(3L,"Write unit Tests","TODO","MEDIUM")));*/
 	
-	 private final TaskService taskService;
+	private List<Task> tasks = new ArrayList<>(List.of(
+            new Task(1L, "Build HelloController", "DONE", "HIGH"),
+            new Task(2L, "Connect MySQL", "TODO", "HIGH"),
+            new Task(3L, "Write Unit Tests", "TODO", "MEDIUM")
+    ));
 
-	    public TaskController(TaskService taskService) {
-	        this.taskService = taskService;
-	    }
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<Task>>> getAllTasks() {
+        return ResponseEntity.ok(ApiResponse.success("Tasks fetched", tasks));
+    }
 
-	    @GetMapping
-	    public List<Task> getAllTasks() {
-	        return taskService.getAllTasks();
-	    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<Task>> getTaskById(@PathVariable Long id) {
+        Task task = tasks.stream()
+                .filter(t -> t.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new TaskNotFoundException(id)); // throws → handler catches
+        return ResponseEntity.ok(ApiResponse.success("Task found", task));
+    }
 
-	    @GetMapping("/{id}")
-	    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
-	        return taskService.getTaskById(id)
-	                .map(ResponseEntity::ok)
-	                .orElse(ResponseEntity.notFound().build());
-	    }
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<Task>>> filterByStatus(@RequestParam String status) {
+        List<Task> filtered = tasks.stream()
+                .filter(t -> t.getStatus().equalsIgnoreCase(status))
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success("Filtered by: " + status, filtered));
+    }
 
-	    @GetMapping("/filter")
-	    public List<Task> filterByStatus(@RequestParam String status) {
-	        return taskService.filterByStatus(status);
-	    }
+    @PostMapping
+    public ResponseEntity<ApiResponse<Task>> createTask(@Valid @RequestBody Task task) {
+        task.setId((long) (tasks.size() + 1));
+        tasks.add(task);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Task created", task));
+    }
 
-	    @PostMapping
-	    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-	        return ResponseEntity.status(201).body(taskService.createTask(task));
-	    }
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<Task>> updateTask(@PathVariable Long id,
+                                                         @Valid @RequestBody Task updated) {
+        for (Task t : tasks) {
+            if (t.getId().equals(id)) {
+                t.setTitle(updated.getTitle());
+                t.setStatus(updated.getStatus());
+                t.setPriority(updated.getPriority());
+                return ResponseEntity.ok(ApiResponse.success("Task updated", t));
+            }
+        }
+        throw new TaskNotFoundException(id);
+    }
 
-	    @PutMapping("/{id}")
-	    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task updated) {
-	        return taskService.updateTask(id, updated)
-	                .map(ResponseEntity::ok)
-	                .orElse(ResponseEntity.notFound().build());
-	    }
-
-	    @DeleteMapping("/{id}")
-	    public ResponseEntity<String> deleteTask(@PathVariable Long id) {
-	        if (taskService.deleteTask(id)) {
-	            return ResponseEntity.ok("Task " + id + " deleted!");
-	        }
-	        return ResponseEntity.notFound().build();
-	    }
-   
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
+        boolean removed = tasks.removeIf(t -> t.getId().equals(id));
+        if (!removed) throw new TaskNotFoundException(id);
+        return ResponseEntity.ok(ApiResponse.success("Task " + id + " deleted", null));
+    }
 }

@@ -5,6 +5,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @Entity
 @Table(name="tasks")
@@ -13,8 +15,16 @@ public class Task {
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
+	
+	@NotBlank(message = "Title cannot be empty")
 	private String title;
+	
+	@NotBlank(message = "Status is required")
+    @Pattern(regexp = "TODO|IN_PROGRESS|DONE", message = "Status must be TODO, IN_PROGRESS, or DONE")
 	private String status;// "Todo","In-progress","done"
+	
+	 @NotBlank(message = "Priority is required")
+	   @Pattern(regexp = "LOW|MEDIUM|HIGH", message = "Priority must be LOW, MEDIUM, or HIGH")
 	private String priority;//"low","medium","high"
 
 
