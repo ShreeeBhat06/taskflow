@@ -3,6 +3,7 @@ package com.taskflow.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import com.taskflow.model.Task;
@@ -17,6 +18,7 @@ public class TaskService {
 		this.taskRepository=taskRepository;
 	}
 	
+	@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
 	public List<Task> getAllTasks()
 	{
 		return taskRepository.findAll();
@@ -32,6 +34,7 @@ public class TaskService {
 		return taskRepository.findByStatusIgnoreCase(status);
 	}
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	public Task createTask(Task task)
 	{
 		//Default status--->TODO if not provided
@@ -48,6 +51,7 @@ public class TaskService {
 	
 	}
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	public Optional<Task> updateTask(Long id,Task updated)
 	{
 		return taskRepository.findById(id)
@@ -59,6 +63,7 @@ public class TaskService {
 				});
 	}
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	public boolean deleteTask(Long id)
 	{
 		if(!taskRepository.existsById(id))

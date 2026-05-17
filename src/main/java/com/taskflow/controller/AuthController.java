@@ -56,4 +56,15 @@ public class AuthController {
         String token = jwtUtil.generateToken(request.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Login successful", new AuthResponse(token)));
     }
+    
+    @PostMapping("/register/admin")
+    public ResponseEntity<ApiResponse<String>> registerAdmin(@RequestBody AuthRequest request) {
+        User user = new User(
+                request.getUsername(),
+                passwordEncoder.encode(request.getPassword()),
+                "ROLE_ADMIN"
+        );
+        userRepository.save(user);
+        return ResponseEntity.ok(ApiResponse.success("Admin registered", user.getUsername()));
+    }
 }
